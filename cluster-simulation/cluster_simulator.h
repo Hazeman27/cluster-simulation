@@ -2,12 +2,12 @@
 #define OLC_PGE_APPLICATION
 
 #include "olcPixelGameEngine.h"
+#include "vector2d.h"
 #include <random>
 
 
 namespace olc { using pge = PixelGameEngine; }
 
-using vu16_2d = olc::v2d_generic<uint16_t>;
 using int_distribution = std::uniform_int_distribution<int32_t>;
 
 constexpr const char* APP_NAME = "Cluster Simulator";
@@ -27,12 +27,12 @@ public:
     vu16_2d offset;
     vu16_2d plane_size;
 
-    std::vector<olc::vi2d> observations;
+    std::vector<vi2d> observations;
     std::default_random_engine random_engine;
 
 private:
-    olc::vi2d world_offset;
-    olc::vi2d start_pan_pos;
+    vi2d world_offset;
+    vi2d start_pan_pos;
     float world_scale;
 
 public:
@@ -84,14 +84,14 @@ public:
     }
 
 private:
-    olc::vi2d size_vi2d()
+    vi2d size_vi2d()
     {
         return { static_cast<int32_t>(this->plane_size.x), static_cast<int32_t>(this->plane_size.y) };
     }
 
-    olc::vi2d world_to_screen(const olc::vi2d& position)
+    vi2d world_to_screen(const vi2d& position)
     {
-        olc::vi2d new_pos = position - this->world_offset;
+        vi2d new_pos = position - this->world_offset;
         
         return {
             static_cast<int32_t>(new_pos.x * this->world_scale),
@@ -99,9 +99,9 @@ private:
         };
     }
 
-    olc::vi2d screen_to_world(const olc::vi2d& position)
+    vi2d screen_to_world(const vi2d& position)
     {
-        olc::vi2d new_pos{
+        vi2d new_pos{
             static_cast<int32_t>(position.x / this->world_scale),
             static_cast<int32_t>(position.y / this->world_scale),
         };
@@ -118,7 +118,7 @@ private:
 
     void generate_observations()
     {
-        olc::vi2d plane_size = std::move(this->size_vi2d());
+        vi2d plane_size = std::move(this->size_vi2d());
 
         for (uint16_t i = 0; i < this->initial_observations; i++) {
             int_distribution x_distr(0, plane_size.x);
@@ -130,7 +130,7 @@ private:
         for (uint16_t i = initial_observations; i < this->max_observations; i++) {
             int_distribution i_distr(0, static_cast<int>(this->observations.size()) - 1);
 
-            const olc::vi2d& random_cell = this->observations[i_distr(this->random_engine)];
+            const vi2d& random_cell = this->observations[i_distr(this->random_engine)];
 
             int_distribution x_offset_distr(this->offset.x * -1, this->offset.x);
             int_distribution y_offset_distr(this->offset.y * -1, this->offset.y);
@@ -138,29 +138,27 @@ private:
             int32_t x_offset = std::clamp(0, x_offset_distr(this->random_engine), plane_size.x);
             int32_t y_offset = std::clamp(0, y_offset_distr(this->random_engine), plane_size.y);
 
-            olc::vi2d offset_pos{ x_offset_distr(this->random_engine), y_offset_distr(this->random_engine) };
+            vi2d offset_pos{ x_offset_distr(this->random_engine), y_offset_distr(this->random_engine) };
 
             this->observations.push_back(random_cell + offset_pos);
         }
     }
 
-    void draw_cells()
+    void draw_observations()
     {
-        for (auto& cell : this->observations) {
-            olc::vi2d position(std::move(this->world_to_screen(cell)));
-            olc::pge::FillCircle(position, 1, olc::RED);
-        }
+        for (auto& observation : this->observations)
+            olc::pge::FillCircle(std::move(this->world_to_screen(observation)), 1, olc::RED);
     }
 
     void draw_axis()
     {
-        olc::vi2d plane_size(std::move(this->size_vi2d()));
+        vi2d plane_size(std::move(this->size_vi2d()));
 
-        olc::vi2d x_axis_start(this->world_to_screen({ 0, plane_size.y / 2 }));
-        olc::vi2d x_axis_end(this->world_to_screen({ plane_size.x, plane_size.y / 2 }));
+        vi2d x_axis_start(this->world_to_screen({ 0, plane_size.y / 2 }));
+        vi2d x_axis_end(this->world_to_screen({ plane_size.x, plane_size.y / 2 }));
 
-        olc::vi2d y_axis_start(this->world_to_screen({ plane_size.x / 2, 0 }));
-        olc::vi2d y_axis_end(this->world_to_screen({ plane_size.x / 2, plane_size.y }));
+        vi2d y_axis_start(this->world_to_screen({ plane_size.x / 2, 0 }));
+        vi2d y_axis_end(this->world_to_screen({ plane_size.x / 2, plane_size.y }));
 
         olc::pge::DrawLine({ 0, x_axis_start.y }, { olc::pge::ScreenWidth(), x_axis_end.y }, olc::WHITE, DASHED_LINE_PATTERN);
         olc::pge::DrawLine({ y_axis_start.x, 0 }, { y_axis_end.x, olc::pge::ScreenHeight() }, olc::WHITE, DASHED_LINE_PATTERN);
@@ -169,7 +167,7 @@ private:
 
     void zoom_and_pan()
     {
-        olc::vi2d mouse_pos{ olc::pge::GetMouseX(), olc::pge::GetMouseY() };
+        vi2d mouse_pos{ olc::pge::GetMouseX(), olc::pge::GetMouseY() };
 
         if (olc::pge::GetMouse(2).bPressed)
             this->start_pan_pos = mouse_pos;
@@ -181,7 +179,7 @@ private:
             this->start_pan_pos = mouse_pos;
         }
 
-        olc::vi2d mouse_before_zoom = this->screen_to_world(mouse_pos);
+        vi2d mouse_before_zoom = this->screen_to_world(mouse_pos);
 
         if (olc::pge::GetMouseWheel() > 0 || olc::pge::GetKey(olc::R).bHeld)
             this->world_scale *= 1.1f;
@@ -189,7 +187,7 @@ private:
         if (olc::pge::GetMouseWheel() < 0 || olc::pge::GetKey(olc::Q).bHeld)
             this->world_scale *= 0.9f;
 
-        olc::vi2d mouse_after_zoom = this->screen_to_world(mouse_pos);
+        vi2d mouse_after_zoom = this->screen_to_world(mouse_pos);
         this->world_offset += (mouse_before_zoom - mouse_after_zoom);
     }
 
@@ -216,7 +214,7 @@ public:
         olc::pge::Clear(olc::DARK_BLUE);
 
         this->zoom_and_pan();
-        this->draw_cells();
+        this->draw_observations();
         this->draw_axis();
 
         DrawString({ 0, 0 }, "Scale: " + std::to_string(this->world_scale));

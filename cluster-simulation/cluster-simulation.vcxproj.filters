@@ -29,5 +29,11 @@
     <ClInclude Include="cluster_quantizer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="k_means.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vector2d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
