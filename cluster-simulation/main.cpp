@@ -1,10 +1,14 @@
-#include "cluster_simulator.h"
-#include "k_means.h"
+#include "simulator.h"
+#include "k_centroids.h"
+#include "k_medoids.h"
 
 
 int main()
 {
-    cluster_simulator simulator({ std::make_shared<k_means>() });
+    ntf::cluster::simulator simulator({
+        std::make_shared<ntf::cluster::k_centroids>(),
+        std::make_shared<ntf::cluster::k_medoids>(),
+    });
 
     if (simulator.Construct(480, 320, 2, 2))
         simulator.Start();

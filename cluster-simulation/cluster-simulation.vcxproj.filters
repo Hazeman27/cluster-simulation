@@ -18,27 +18,30 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cluster_simulator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="olcPixelGameEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cluster_simulator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cluster_quantizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="k_means.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vector2d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="colors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="k_centroids.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="k_medoids.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="quantizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="simulator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
