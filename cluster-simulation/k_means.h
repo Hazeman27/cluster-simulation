@@ -5,37 +5,31 @@
 
 struct k_means : public cluster_quantizer
 {
-    k_means() : cluster_quantizer("K means", 20)
+    k_means() : cluster_quantizer("K means", 20, 1, INT32_MAX)
     {}
 
-    std::vector<std::vector<vi2d>> quantize(
-        const std::vector<obsi>& observations,
-        uint32_t iterations_amount,
-        int32_t init_param
-    ) override
+    void quantize(const std::vector<obsi>& observations, uint32_t iterations_amount) override
     {
         std::default_random_engine random_engine(
-            std::chrono::high_resolution_clock::now().time_since_epoch().count()
+            static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count())
         );
 
         std::uniform_int_distribution<int32_t> distribution(0, static_cast<int32_t>(observations.size()));
-        std::vector<obsi> centroids;
+        std::vector<obsi> centroids(this->quantization_param);
 
         std::unordered_map<int32_t, bool> visited_observations;
 
-        for (int32_t i = 0; i < init_param;) {
+        for (int32_t i = 0; i < this->quantization_param;) {
             int32_t index = distribution(random_engine);
 
             if (visited_observations.find(index) != visited_observations.end())
                 continue;
 
-            centroids.push_back(observations[index]);
+            centroids[i] = observations[index];
             visited_observations.insert({ index, true });
 
             i++;
         }
-
-        std::vector<std::vector<vi2d>> clusters(init_param);
 
         for (uint32_t n = 0; n < iterations_amount; n++) {
 
@@ -55,8 +49,8 @@ struct k_means : public cluster_quantizer
                 }
             }
 
-            std::vector<size_t> clusters_observations_amount(init_param, 0);
-            std::vector<vi2d> observations_coords_sum(init_param, { 0, 0 });
+            std::vector<int32_t> clusters_observations_amount(this->quantization_param, 0);
+            std::vector<vi2d> observations_coords_sum(this->quantization_param, { 0, 0 });
 
             for (auto& observation : observations) {
 
@@ -69,16 +63,11 @@ struct k_means : public cluster_quantizer
             for (size_t i = 0; i < centroids.size(); i++) {
 
                 centroids[i] = {
-                    observations_coords_sum[i] / clusters_observations_amount[i],
+                    observations_coords_sum[i] / std::max(clusters_observations_amount[i], 1),
                     centroids[i].mean,
                     centroids[i].cluster_index,
                 };
             }
         }
-
-        for (auto& observation : observations)
-            clusters.at(observation.cluster_index).push_back(observation);
-
-        return clusters;
     }
 };

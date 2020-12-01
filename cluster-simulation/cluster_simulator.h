@@ -3,6 +3,8 @@
 
 #include "olcPixelGameEngine.h"
 #include "vector2d.h"
+#include "cluster_quantizer.h"
+#include "colors.h"
 #include <random>
 
 
@@ -16,40 +18,55 @@ constexpr uint16_t DEFAULT_PLANE_SIZE = 10000;
 constexpr uint16_t DEFAULT_OFFSET = 100;
 constexpr uint16_t DEFAULT_INITIAL_OBSERVATIONS = 20;
 constexpr uint16_t DEFAULT_MAX_OBSERVATIONS = 40000;
+constexpr uint16_t DEFAULT_ITERATIONS_AMOUNT = 20;
 
 constexpr uint32_t DASHED_LINE_PATTERN = 0xF0F0F0F0;
 
+constexpr int32_t BASE_GAP = 5;
+constexpr int32_t STRING_HEIGHT = 12;
+
+struct cluster
+{
+    olc::Pixel color;
+    
+};
+
 class cluster_simulator : public olc::PixelGameEngine
 {
-public:
-    uint16_t initial_observations;
-    uint16_t max_observations;
-    vu16_2d offset;
-    vu16_2d plane_size;
+    using cluster_quantizers = std::vector<std::shared_ptr<cluster_quantizer>>;
 
-    std::vector<vi2d> observations;
+public:
+    uint16_t initial_observations = DEFAULT_INITIAL_OBSERVATIONS;
+    uint16_t max_observations = DEFAULT_MAX_OBSERVATIONS;
+    vu16_2d offset = { DEFAULT_OFFSET, DEFAULT_OFFSET };
+    vu16_2d plane_size = { DEFAULT_PLANE_SIZE, DEFAULT_PLANE_SIZE };
+
+    std::vector<obsi> observations = {};
     std::default_random_engine random_engine;
 
+    cluster_quantizers quantizers = {};
+
 private:
-    vi2d world_offset;
+    uint32_t iterations_amount = DEFAULT_ITERATIONS_AMOUNT;
+    size_t current_quantizer_index = 0;
+
     vi2d start_pan_pos;
-    float world_scale;
+    vi2d world_offset = { 0, 0 };
+    float world_scale = 1.0f;
 
 public:
-    cluster_simulator() :
-        initial_observations(DEFAULT_INITIAL_OBSERVATIONS),
-        max_observations(DEFAULT_MAX_OBSERVATIONS),
-        offset{ DEFAULT_OFFSET, DEFAULT_OFFSET },
-        plane_size{ DEFAULT_PLANE_SIZE, DEFAULT_PLANE_SIZE },
-        observations{},
-        world_offset{ 0, 0 },
-        world_scale(1.0f)
+    cluster_simulator(const cluster_quantizers& quantizers) : quantizers(quantizers)
     {
-        olc::pge::sAppName = APP_NAME;
-        this->seed_random_engine();
+        this->init();
+    }
+
+    cluster_simulator(cluster_quantizers&& quantizers) : quantizers(std::move(quantizers))
+    {
+        this->init();
     }
 
     cluster_simulator(
+        const cluster_quantizers& quantizers,
         const vu16_2d& plane_size,
         const vu16_2d& offset,
         uint16_t initial_observations,
@@ -60,14 +77,13 @@ public:
         offset(offset),
         plane_size(plane_size),
         observations{},
-        world_offset{ 0, 0 },
-        world_scale(1.0f)
+        quantizers(quantizers)
     {
-        olc::pge::sAppName = APP_NAME;
-        this->seed_random_engine();
+        this->init();
     }
     
     cluster_simulator(
+        cluster_quantizers&& quantizers,
         vu16_2d&& plane_size,
         vu16_2d&& offset,
         uint16_t initial_observations,
@@ -77,13 +93,23 @@ public:
         max_observations(max_observations),
         offset(std::move(offset)),
         plane_size(std::move(plane_size)),
-        observations{}
+        observations{},
+        quantizers(std::move(quantizers))
     {
-        olc::pge::sAppName = APP_NAME;
-        this->seed_random_engine();
+        this->init();
     }
 
 private:
+    void init()
+    {
+        olc::pge::sAppName = APP_NAME;
+    }
+
+    olc::Pixel get_cluster_color(size_t index)
+    {
+        return VISUALLY_DISTINCT_COLORS[index % VISUALLY_DISTINCT_COLORS_AMOUNT];
+    }
+
     vi2d size_vi2d()
     {
         return { static_cast<int32_t>(this->plane_size.x), static_cast<int32_t>(this->plane_size.y) };
@@ -118,7 +144,10 @@ private:
 
     void generate_observations()
     {
+        this->seed_random_engine();
         vi2d plane_size = std::move(this->size_vi2d());
+
+        this->observations.clear();
 
         for (uint16_t i = 0; i < this->initial_observations; i++) {
             int_distribution x_distr(0, plane_size.x);
@@ -130,7 +159,7 @@ private:
         for (uint16_t i = initial_observations; i < this->max_observations; i++) {
             int_distribution i_distr(0, static_cast<int>(this->observations.size()) - 1);
 
-            const vi2d& random_cell = this->observations[i_distr(this->random_engine)];
+            const obsi& random_cell = this->observations[i_distr(this->random_engine)];
 
             int_distribution x_offset_distr(this->offset.x * -1, this->offset.x);
             int_distribution y_offset_distr(this->offset.y * -1, this->offset.y);
@@ -146,8 +175,13 @@ private:
 
     void draw_observations()
     {
-        for (auto& observation : this->observations)
-            olc::pge::FillCircle(std::move(this->world_to_screen(observation)), 1, olc::RED);
+        for (auto& obs : this->observations) {
+            olc::pge::FillCircle(
+                std::move(this->world_to_screen(obs)),
+                1,
+                this->get_cluster_color(obs.cluster_index)
+            );
+        }
     }
 
     void draw_axis()
@@ -181,17 +215,32 @@ private:
 
         vi2d mouse_before_zoom = this->screen_to_world(mouse_pos);
 
-        if (olc::pge::GetMouseWheel() > 0 || olc::pge::GetKey(olc::R).bHeld)
+        if (olc::pge::GetMouseWheel() > 0 || olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::EQUALS).bHeld)
             this->world_scale *= 1.1f;
 
-        if (olc::pge::GetMouseWheel() < 0 || olc::pge::GetKey(olc::Q).bHeld)
+        if (olc::pge::GetMouseWheel() < 0 || olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::MINUS).bHeld)
             this->world_scale *= 0.9f;
 
         vi2d mouse_after_zoom = this->screen_to_world(mouse_pos);
         this->world_offset += (mouse_before_zoom - mouse_after_zoom);
     }
 
+    void draw_info()
+    {
+        DrawString({ BASE_GAP, BASE_GAP }, "Scale: " + std::to_string(this->world_scale));
+        DrawString({ BASE_GAP, BASE_GAP + STRING_HEIGHT }, "Iterations: " + std::to_string(this->iterations_amount));
+        DrawString(
+            { BASE_GAP, BASE_GAP + STRING_HEIGHT * 2 },
+            this->current_quantizer()->name + ", k = " + std::to_string(this->current_quantizer()->quantization_param)
+        );
+    }
+
 public:
+    std::shared_ptr<cluster_quantizer> current_quantizer()
+    {
+        return this->quantizers.at(current_quantizer_index);
+    }
+
     bool OnUserCreate()
     {
 
@@ -211,13 +260,31 @@ public:
 
     bool OnUserUpdate(float elapsedTime)
     {
-        olc::pge::Clear(olc::DARK_BLUE);
+        olc::pge::Clear(olc::BLACK);
 
         this->zoom_and_pan();
         this->draw_observations();
         this->draw_axis();
+        this->draw_info();
+        
+        if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::K).bPressed && this->current_quantizer()->quantization_param < this->current_quantizer()->quantization_param_max)
+            this->current_quantizer()->quantization_param++;
 
-        DrawString({ 0, 0 }, "Scale: " + std::to_string(this->world_scale));
+        if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::J).bPressed && this->current_quantizer()->quantization_param > this->current_quantizer()->quantization_param_min)
+            this->current_quantizer()->quantization_param--;
+
+        if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::I).bPressed && iterations_amount < UINT32_MAX)
+            this->iterations_amount++;
+
+        if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::U).bPressed && iterations_amount > 1)
+            this->iterations_amount--;
+
+        if (olc::pge::GetKey(olc::S).bPressed)
+            this->current_quantizer()->quantize(this->observations, this->iterations_amount);
+
+        if (olc::pge::GetKey(olc::R).bPressed)
+            this->generate_observations();
+
         return true;
     }
 };
