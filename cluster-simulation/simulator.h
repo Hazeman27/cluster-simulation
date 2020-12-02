@@ -128,7 +128,7 @@ namespace ntf
 
             vi2d screen_to_world(const vi2d& position)
             {
-                vi2d new_pos{
+                vi2d new_pos {
                     static_cast<int32_t>(position.x / this->world_scale),
                     static_cast<int32_t>(position.y / this->world_scale),
                 };
@@ -151,7 +151,8 @@ namespace ntf
 
                 this->clusters.push_back({ {}, plane_size / 2, VISUALLY_DISTINCT_COLORS[0] });
 
-                for (uint16_t i = 0; i < this->root_observations_amount; i++) {
+                for (uint16_t i = 0; i < this->root_observations_amount; i++)
+                {
                     int_distribution x_distr(0, plane_size.x - 1);
                     int_distribution y_distr(0, plane_size.y - 1);
 
@@ -159,7 +160,8 @@ namespace ntf
                     this->clusters[0].observation_indices.push_back(i);
                 }
 
-                for (uint16_t i = root_observations_amount; i < this->observations_amount; i++) {
+                for (uint16_t i = root_observations_amount; i < this->observations_amount; i++)
+                {
                     int_distribution i_distr(0, static_cast<int>(this->observations.size()) - 1);
 
                     auto& random_cell = this->observations[i_distr(this->random_engine)];
@@ -308,7 +310,6 @@ namespace ntf
 
             bool OnUserCreate()
             {
-
                 this->world_scale = std::min(
                     olc::pge::ScreenWidth() / static_cast<float>(this->plane_size.x),
                     olc::pge::ScreenHeight() / static_cast<float>(this->plane_size.y)

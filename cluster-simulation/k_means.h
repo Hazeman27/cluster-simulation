@@ -82,7 +82,6 @@ namespace ntf
                         for (size_t j = 0; j < this->param; j++)
                         {
                             auto& cluster = clusters[j];
-
                             double distance = observation.euclidean_distance(cluster.mean);
 
                             if (distance < closest_distance)
@@ -134,7 +133,8 @@ namespace ntf
                     auto current_dissimilarity = dissimilarity(clusters, observations);
                     profile.iterations += p.iterations;
                     
-                    if (current_dissimilarity < best_dissimilarity) {
+                    if (current_dissimilarity < best_dissimilarity)
+                    {
                         best_k = k;
                         best_dissimilarity = current_dissimilarity;
                     }
