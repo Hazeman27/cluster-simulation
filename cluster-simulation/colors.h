@@ -9,6 +9,16 @@ namespace ntf
         uint8_t g;
         uint8_t b;
 
+        bool operator== (const color& rhs) const
+        {
+            return this->r == rhs.r && this->g == rhs.g && this->b == rhs.b;
+        }
+
+        bool operator!= (const color& rhs) const
+        {
+            return !(this->operator==(rhs));
+        }
+
         operator olc::Pixel() const
         {
             return { r, g, b };

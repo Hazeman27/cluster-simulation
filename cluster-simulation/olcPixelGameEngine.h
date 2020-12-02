@@ -905,8 +905,8 @@ namespace olc
 		void DrawPartialWarpedDecal(olc::Decal* decal, const olc::vf2d* pos, const olc::vf2d& source_pos, const olc::vf2d& source_size, const olc::Pixel& tint = olc::WHITE);
 		void DrawPartialWarpedDecal(olc::Decal* decal, const std::array<olc::vf2d, 4>& pos, const olc::vf2d& source_pos, const olc::vf2d& source_size, const olc::Pixel& tint = olc::WHITE);
 		// Draws a decal rotated to specified angle, wit point of rotation offset
-		void DrawRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& center = { 0.0f, 0.0f }, const olc::vf2d& scale = { 1.0f,1.0f }, const olc::Pixel& tint = olc::WHITE);
-		void DrawPartialRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& center, const olc::vf2d& source_pos, const olc::vf2d& source_size, const olc::vf2d& scale = { 1.0f, 1.0f }, const olc::Pixel& tint = olc::WHITE);
+		void DrawRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& mean = { 0.0f, 0.0f }, const olc::vf2d& scale = { 1.0f,1.0f }, const olc::Pixel& tint = olc::WHITE);
+		void DrawPartialRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& mean, const olc::vf2d& source_pos, const olc::vf2d& source_size, const olc::vf2d& scale = { 1.0f, 1.0f }, const olc::Pixel& tint = olc::WHITE);
 		// Draws a multiline string as a decal, with tiniting and scaling
 		void DrawStringDecal(const olc::vf2d& pos, const std::string& sText, const Pixel col = olc::WHITE, const olc::vf2d& scale = { 1.0f, 1.0f });
 		void DrawStringPropDecal(const olc::vf2d& pos, const std::string& sText, const Pixel col = olc::WHITE, const olc::vf2d& scale = { 1.0f, 1.0f });
@@ -2426,15 +2426,15 @@ namespace olc
 		vLayers[nTargetLayer].vecDecalInstance.push_back(di);
 	}
 
-	void PixelGameEngine::DrawRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& center, const olc::vf2d& scale, const olc::Pixel& tint)
+	void PixelGameEngine::DrawRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& mean, const olc::vf2d& scale, const olc::Pixel& tint)
 	{
 		DecalInstance di;
 		di.decal = decal;
 		di.tint[0] = tint;
-		di.pos[0] = (olc::vf2d(0.0f, 0.0f) - center) * scale;
-		di.pos[1] = (olc::vf2d(0.0f, float(decal->sprite->height)) - center) * scale;
-		di.pos[2] = (olc::vf2d(float(decal->sprite->width), float(decal->sprite->height)) - center) * scale;
-		di.pos[3] = (olc::vf2d(float(decal->sprite->width), 0.0f) - center) * scale;
+		di.pos[0] = (olc::vf2d(0.0f, 0.0f) - mean) * scale;
+		di.pos[1] = (olc::vf2d(0.0f, float(decal->sprite->height)) - mean) * scale;
+		di.pos[2] = (olc::vf2d(float(decal->sprite->width), float(decal->sprite->height)) - mean) * scale;
+		di.pos[3] = (olc::vf2d(float(decal->sprite->width), 0.0f) - mean) * scale;
 		float c = cos(fAngle), s = sin(fAngle);
 		for (int i = 0; i < 4; i++)
 		{
@@ -2477,15 +2477,15 @@ namespace olc
 	}
 
 
-	void PixelGameEngine::DrawPartialRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& center, const olc::vf2d& source_pos, const olc::vf2d& source_size, const olc::vf2d& scale, const olc::Pixel& tint)
+	void PixelGameEngine::DrawPartialRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& mean, const olc::vf2d& source_pos, const olc::vf2d& source_size, const olc::vf2d& scale, const olc::Pixel& tint)
 	{
 		DecalInstance di;
 		di.decal = decal;
 		di.tint[0] = tint;
-		di.pos[0] = (olc::vf2d(0.0f, 0.0f) - center) * scale;
-		di.pos[1] = (olc::vf2d(0.0f, source_size.y) - center) * scale;
-		di.pos[2] = (olc::vf2d(source_size.x, source_size.y) - center) * scale;
-		di.pos[3] = (olc::vf2d(source_size.x, 0.0f) - center) * scale;
+		di.pos[0] = (olc::vf2d(0.0f, 0.0f) - mean) * scale;
+		di.pos[1] = (olc::vf2d(0.0f, source_size.y) - mean) * scale;
+		di.pos[2] = (olc::vf2d(source_size.x, source_size.y) - mean) * scale;
+		di.pos[3] = (olc::vf2d(source_size.x, 0.0f) - mean) * scale;
 		float c = cos(fAngle), s = sin(fAngle);
 		for (int i = 0; i < 4; i++)
 		{
@@ -2507,7 +2507,7 @@ namespace olc
 		DecalInstance di;
 		di.decal = decal;
 		di.tint[0] = tint;
-		olc::vf2d center;
+		olc::vf2d mean;
 		float rd = ((pos[2].x - pos[0].x) * (pos[3].y - pos[1].y) - (pos[3].x - pos[1].x) * (pos[2].y - pos[0].y));
 		if (rd != 0)
 		{
@@ -2519,8 +2519,8 @@ namespace olc
 			rd = 1.0f / rd;
 			float rn = ((pos[3].x - pos[1].x) * (pos[0].y - pos[1].y) - (pos[3].y - pos[1].y) * (pos[0].x - pos[1].x)) * rd;
 			float sn = ((pos[2].x - pos[0].x) * (pos[0].y - pos[1].y) - (pos[2].y - pos[0].y) * (pos[0].x - pos[1].x)) * rd;
-			if (!(rn < 0.f || rn > 1.f || sn < 0.f || sn > 1.f)) center = pos[0] + rn * (pos[2] - pos[0]);
-			float d[4];	for (int i = 0; i < 4; i++)	d[i] = (pos[i] - center).mag();
+			if (!(rn < 0.f || rn > 1.f || sn < 0.f || sn > 1.f)) mean = pos[0] + rn * (pos[2] - pos[0]);
+			float d[4];	for (int i = 0; i < 4; i++)	d[i] = (pos[i] - mean).mag();
 			for (int i = 0; i < 4; i++)
 			{
 				float q = d[i] == 0.0f ? 1.0f : (d[i] + d[(i + 2) & 3]) / d[(i + 2) & 3];
@@ -2539,15 +2539,15 @@ namespace olc
 		DecalInstance di;
 		di.decal = decal;
 		di.tint[0] = tint;
-		olc::vf2d center;
+		olc::vf2d mean;
 		float rd = ((pos[2].x - pos[0].x) * (pos[3].y - pos[1].y) - (pos[3].x - pos[1].x) * (pos[2].y - pos[0].y));
 		if (rd != 0)
 		{
 			rd = 1.0f / rd;
 			float rn = ((pos[3].x - pos[1].x) * (pos[0].y - pos[1].y) - (pos[3].y - pos[1].y) * (pos[0].x - pos[1].x)) * rd;
 			float sn = ((pos[2].x - pos[0].x) * (pos[0].y - pos[1].y) - (pos[2].y - pos[0].y) * (pos[0].x - pos[1].x)) * rd;
-			if (!(rn < 0.f || rn > 1.f || sn < 0.f || sn > 1.f)) center = pos[0] + rn * (pos[2] - pos[0]);
-			float d[4];	for (int i = 0; i < 4; i++)	d[i] = (pos[i] - center).mag();
+			if (!(rn < 0.f || rn > 1.f || sn < 0.f || sn > 1.f)) mean = pos[0] + rn * (pos[2] - pos[0]);
+			float d[4];	for (int i = 0; i < 4; i++)	d[i] = (pos[i] - mean).mag();
 			for (int i = 0; i < 4; i++)
 			{
 				float q = d[i] == 0.0f ? 1.0f : (d[i] + d[(i + 2) & 3]) / d[(i + 2) & 3];

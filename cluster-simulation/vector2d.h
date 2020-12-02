@@ -17,18 +17,23 @@ namespace ntf
 		vector2d(const vector2d& vector) : x(vector.x), y(vector.y)
 		{}
 
-		vector2d(vector2d&& vector) noexcept : x(vector.x), y(vector.y)
-		{}
-
-		T distance_squared(const vector2d<T>& other) const
+		double euclidean_distance(const vector2d<T>& other) const
 		{
 			T deltaX = other.x - this->x;
 			T deltaY = other.y - this->y;
 
+			return std::sqrt(deltaX * deltaX + deltaY * deltaY);
+		}
+
+		uint64_t euclidean_distance_squared(const vector2d<T>& other) const
+		{
+			uint64_t deltaX = static_cast<uint64_t>(other.x) - static_cast<uint64_t>(this->x);
+			uint64_t deltaY = static_cast<uint64_t>(other.y) - static_cast<uint64_t>(this->y);
+
 			return deltaX * deltaX + deltaY * deltaY;
 		}
 
-		T dissimilarity(const vector2d<T>& other) const
+		uint64_t manhattan_distance(const vector2d<T>& other) const
 		{
 			return std::abs(this->x - other.x) + std::abs(this->y - other.y);
 		}
@@ -37,32 +42,32 @@ namespace ntf
 
 		vector2d operator+ (const vector2d& rhs) const
 		{
-			return vector2d(this->x + rhs.x, this->y + rhs.y);
+			return { this->x + rhs.x, this->y + rhs.y };
 		}
 
 		vector2d operator- (const vector2d& rhs) const
 		{
-			return vector2d(this->x - rhs.x, this->y - rhs.y);
+			return { this->x - rhs.x, this->y - rhs.y };
 		}
 
 		vector2d operator* (const T& rhs) const
 		{
-			return vector2d(this->x * rhs, this->y * rhs);
+			return { this->x * rhs, this->y * rhs };
 		}
 
 		vector2d operator* (const vector2d& rhs) const
 		{
-			return vector2d(this->x * rhs.x, this->y * rhs.y);
+			return { this->x * rhs.x, this->y * rhs.y };
 		}
 
 		vector2d operator/ (const T& rhs) const
 		{
-			return vector2d(this->x / rhs, this->y / rhs);
+			return { this->x / rhs, this->y / rhs };
 		}
 
 		vector2d operator/ (const vector2d& rhs) const
 		{
-			return vector2d(this->x / rhs.x, this->y / rhs.y);
+			return { this->x / rhs.x, this->y / rhs.y };
 		}
 
 		vector2d& operator+= (const vector2d& rhs)

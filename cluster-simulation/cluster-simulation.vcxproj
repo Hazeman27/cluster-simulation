@@ -143,17 +143,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="k_centroids.cpp" />
-    <ClCompile Include="k_medoids.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cluster.h" />
     <ClInclude Include="constrained.h" />
-    <ClInclude Include="quantizer.h" />
+    <ClInclude Include="k_means.h" />
     <ClInclude Include="simulator.h" />
     <ClInclude Include="colors.h" />
-    <ClInclude Include="k_centroids.h" />
-    <ClInclude Include="k_medoids.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="vector2d.h" />

@@ -3,6 +3,8 @@
 
 namespace ntf
 {
+    using high_res_clock = std::chrono::high_resolution_clock;
+    using time_point = high_res_clock::time_point;
     using seconds = std::chrono::seconds;
     using milliseconds = std::chrono::milliseconds;
     using microseconds = std::chrono::microseconds;
@@ -14,9 +16,6 @@ namespace ntf
         T& _elapsed_time;
 
     public:
-        using high_res_clock = std::chrono::high_resolution_clock;
-        using time_point = high_res_clock::time_point;
-
         time_point start = high_res_clock::now();
         time_point end = high_res_clock::now();
 
