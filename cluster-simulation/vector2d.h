@@ -33,39 +33,39 @@ namespace ntf
 			return std::abs(this->x - other.x) + std::abs(this->y - other.y);
 		}
 
-		vector2d& operator = (const vector2d& vector) = default;
+		vector2d& operator= (const vector2d& vector) = default;
 
-		vector2d operator + (const vector2d& rhs) const
+		vector2d operator+ (const vector2d& rhs) const
 		{
 			return vector2d(this->x + rhs.x, this->y + rhs.y);
 		}
 
-		vector2d operator - (const vector2d& rhs) const
+		vector2d operator- (const vector2d& rhs) const
 		{
 			return vector2d(this->x - rhs.x, this->y - rhs.y);
 		}
 
-		vector2d operator * (const T& rhs) const
+		vector2d operator* (const T& rhs) const
 		{
 			return vector2d(this->x * rhs, this->y * rhs);
 		}
 
-		vector2d operator * (const vector2d& rhs) const
+		vector2d operator* (const vector2d& rhs) const
 		{
 			return vector2d(this->x * rhs.x, this->y * rhs.y);
 		}
 
-		vector2d operator / (const T& rhs) const
+		vector2d operator/ (const T& rhs) const
 		{
 			return vector2d(this->x / rhs, this->y / rhs);
 		}
 
-		vector2d operator / (const vector2d& rhs) const
+		vector2d operator/ (const vector2d& rhs) const
 		{
 			return vector2d(this->x / rhs.x, this->y / rhs.y);
 		}
 
-		vector2d& operator += (const vector2d& rhs)
+		vector2d& operator+= (const vector2d& rhs)
 		{
 			this->x += rhs.x;
 			this->y += rhs.y;
@@ -73,7 +73,7 @@ namespace ntf
 			return *this;
 		}
 
-		vector2d& operator -= (const vector2d& rhs)
+		vector2d& operator-= (const vector2d& rhs)
 		{
 			this->x -= rhs.x;
 			this->y -= rhs.y;
@@ -81,7 +81,7 @@ namespace ntf
 			return *this;
 		}
 
-		vector2d& operator *= (const T& rhs)
+		vector2d& operator*= (const T& rhs)
 		{
 			this->x *= rhs;
 			this->y *= rhs;
@@ -89,7 +89,7 @@ namespace ntf
 			return *this;
 		}
 
-		vector2d& operator /= (const T& rhs)
+		vector2d& operator/= (const T& rhs)
 		{
 			this->x /= rhs;
 			this->y /= rhs;
@@ -97,54 +97,54 @@ namespace ntf
 			return *this;
 		}
 
-		vector2d operator + () const
+		vector2d operator+ () const
 		{
 			return { +x, +y };
 		}
 
-		vector2d operator - () const
+		vector2d operator- () const
 		{
 			return { -x, -y };
 		}
 
-		bool operator == (const vector2d& rhs) const
+		bool operator== (const vector2d& rhs) const
 		{
 			return this->x == rhs.x && this->y == rhs.y;
 		}
 
-		bool operator < (const vector2d& rhs) const
+		bool operator< (const vector2d& rhs) const
 		{
 			return this->x < rhs.x&& this->y < rhs.y;
 		}
 
-		bool operator <= (const vector2d& rhs) const
+		bool operator<= (const vector2d& rhs) const
 		{
 			return this->x <= rhs.x && this->y <= rhs.y;
 		}
 
-		bool operator > (const vector2d& rhs) const
+		bool operator> (const vector2d& rhs) const
 		{
 			return this->x > rhs.x && this->y > rhs.y;
 		}
 
-		bool operator >= (const vector2d& rhs) const
+		bool operator>= (const vector2d& rhs) const
 		{
 			return this->x >= rhs.x && this->y >= rhs.y;
 		}
 
-		bool operator != (const vector2d& rhs) const
+		bool operator!= (const vector2d& rhs) const
 		{
 			return this->x != rhs.x || this->y != rhs.y;
 		}
 
-		const std::string str() const
+		const std::string to_string() const
 		{
 			return "(" + std::to_string(this->x) + "," + std::to_string(this->y) + ")";
 		}
 
 		friend std::ostream& operator << (std::ostream& os, const vector2d& rhs)
 		{
-			os << rhs.str();
+			os << rhs.to_string();
 			return os;
 		}
 
@@ -175,6 +175,11 @@ namespace ntf
 		operator olc::v2d_generic<T>() const
 		{
 			return { this->x, this->y };
+		}
+
+		size_t operator() (const vector2d& vector) const noexcept
+		{
+			return std::hash<T>{}(vector.x) ^ (std::hash<T>{}(vector.y) << 1);
 		}
 	};
 

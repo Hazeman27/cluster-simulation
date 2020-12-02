@@ -143,9 +143,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="k_centroids.cpp" />
+    <ClCompile Include="k_medoids.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="constrained.h" />
     <ClInclude Include="quantizer.h" />
     <ClInclude Include="simulator.h" />
     <ClInclude Include="colors.h" />

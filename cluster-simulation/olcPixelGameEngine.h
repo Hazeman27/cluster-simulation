@@ -508,8 +508,8 @@ namespace olc
 		v2d_generic  operator -  () const { return { -x, -y }; }
 		bool operator == (const v2d_generic& rhs) const { return (this->x == rhs.x && this->y == rhs.y); }
 		bool operator != (const v2d_generic& rhs) const { return (this->x != rhs.x || this->y != rhs.y); }
-		const std::string str() const { return std::string("(") + std::to_string(this->x) + "," + std::to_string(this->y) + ")"; }
-		friend std::ostream& operator << (std::ostream& os, const v2d_generic& rhs) { os << rhs.str(); return os; }
+		const std::string to_string() const { return std::string("(") + std::to_string(this->x) + "," + std::to_string(this->y) + ")"; }
+		friend std::ostream& operator << (std::ostream& os, const v2d_generic& rhs) { os << rhs.to_string(); return os; }
 		operator v2d_generic<int32_t>() const { return { static_cast<int32_t>(this->x), static_cast<int32_t>(this->y) }; }
 		operator v2d_generic<float>() const { return { static_cast<float>(this->x), static_cast<float>(this->y) }; }
 		operator v2d_generic<double>() const { return { static_cast<double>(this->x), static_cast<double>(this->y) }; }

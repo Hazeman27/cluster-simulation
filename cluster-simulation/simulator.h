@@ -153,8 +153,8 @@ namespace ntf
                 this->observations.clear();
 
                 for (uint16_t i = 0; i < this->initial_observations; i++) {
-                    int_distribution x_distr(0, plane_size.x);
-                    int_distribution y_distr(0, plane_size.y);
+                    int_distribution x_distr(0, plane_size.x - 1);
+                    int_distribution y_distr(0, plane_size.y - 1);
 
                     this->observations.push_back({ x_distr(this->random_engine), y_distr(this->random_engine) });
                 }
@@ -167,8 +167,8 @@ namespace ntf
                     int_distribution x_offset_distr(this->offset.x * -1, this->offset.x);
                     int_distribution y_offset_distr(this->offset.y * -1, this->offset.y);
 
-                    int32_t x_offset = std::clamp(0, x_offset_distr(this->random_engine), plane_size.x);
-                    int32_t y_offset = std::clamp(0, y_offset_distr(this->random_engine), plane_size.y);
+                    int32_t x_offset = std::clamp(0, x_offset_distr(this->random_engine), plane_size.x - 1);
+                    int32_t y_offset = std::clamp(0, y_offset_distr(this->random_engine), plane_size.y - 1);
 
                     vi2d offset_pos{ x_offset_distr(this->random_engine), y_offset_distr(this->random_engine) };
 
@@ -246,7 +246,7 @@ namespace ntf
                 DrawString({ BASE_GAP, BASE_GAP }, "Scale: " + std::to_string(this->world_scale));
                 DrawString(
                     { BASE_GAP, BASE_GAP + STRING_HEIGHT },
-                    this->current_quantizer()->name + ", k=" + std::to_string(this->current_quantizer()->quantization_param)
+                    this->current_quantizer()->name + ", k=" + std::to_string(this->current_quantizer()->quantization_param.value)
                 );
 
                 DrawString(
@@ -309,10 +309,10 @@ namespace ntf
                 this->draw_axis();
                 this->draw_info();
 
-                if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::K).bPressed && this->current_quantizer()->quantization_param < this->current_quantizer()->quantization_param_max)
+                if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::K).bPressed)
                     this->current_quantizer()->quantization_param++;
 
-                if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::J).bPressed && this->current_quantizer()->quantization_param > this->current_quantizer()->quantization_param_min)
+                if (olc::pge::GetKey(olc::CTRL).bHeld && olc::pge::GetKey(olc::J).bPressed)
                     this->current_quantizer()->quantization_param--;
 
                 if (olc::pge::GetKey(olc::RIGHT).bPressed)
