@@ -19,6 +19,8 @@ namespace ntf::cluster
     private:
         using partitioner_shared_ptr = std::shared_ptr<partitioner<int32_t>>;
 
+        std::default_random_engine random_engine;
+
         constrained<uint16_t, 1, UINT16_MAX> root_observations_amount = DEFAULT_ROOT_OBSERVATIONS_AMOUNT;
         constrained_uint16_t observations_amount = DEFAULT_OBSERVATIONS_AMOUNT;
         vu16_2d offset = { DEFAULT_OFFSET, DEFAULT_OFFSET };
@@ -34,7 +36,7 @@ namespace ntf::cluster
         vi2d pan_start_pos;
         vi2d world_offset = { 0, 0 };
         float world_scale = 1.0f;
-
+        
     public:
         simulator(const std::vector<partitioner_shared_ptr>& partitioners)
             : screen("Simulation", olc::P, "P"), partitioners(partitioners)
@@ -109,7 +111,7 @@ namespace ntf::cluster
 
         void generate_observations()
         {
-            this->window->seed_random_engine();
+            this->window->seed_default_random_engine(this->random_engine);
             vi2d plane_size = std::move(this->size_vi2d());
 
             this->clusters.clear();
@@ -122,7 +124,7 @@ namespace ntf::cluster
                 int_distribution x_distr(0, plane_size.x - 1);
                 int_distribution y_distr(0, plane_size.y - 1);
 
-                this->observations.push_back({ x_distr(this->window->random_engine), y_distr(this->window->random_engine) });
+                this->observations.push_back({ x_distr(this->random_engine), y_distr(this->random_engine) });
                 this->clusters[0].observation_indices.push_back(i);
             }
 
@@ -130,15 +132,15 @@ namespace ntf::cluster
             {
                 int_distribution i_distr(0, static_cast<int>(this->observations.size()) - 1);
 
-                auto& random_cell = this->observations[i_distr(this->window->random_engine)];
+                auto& random_cell = this->observations[i_distr(this->random_engine)];
 
                 int_distribution x_offset_distr(this->offset.x * -1, this->offset.x);
                 int_distribution y_offset_distr(this->offset.y * -1, this->offset.y);
 
-                int32_t x_offset = std::clamp(0, x_offset_distr(this->window->random_engine), plane_size.x - 1);
-                int32_t y_offset = std::clamp(0, y_offset_distr(this->window->random_engine), plane_size.y - 1);
+                int32_t x_offset = std::clamp(0, x_offset_distr(this->random_engine), plane_size.x - 1);
+                int32_t y_offset = std::clamp(0, y_offset_distr(this->random_engine), plane_size.y - 1);
 
-                vi2d offset_pos{ x_offset_distr(this->window->random_engine), y_offset_distr(this->window->random_engine) };
+                vi2d offset_pos{ x_offset_distr(this->random_engine), y_offset_distr(this->random_engine) };
 
                 this->observations.push_back(random_cell + offset_pos);
                 this->clusters[0].observation_indices.push_back(i);
@@ -267,8 +269,10 @@ namespace ntf::cluster
             return this->partitioners.at(current_partitioner_index);
         }
 
-        bool OnUserCreate()
+        bool on_create(std::shared_ptr<ntf::window> window) override
         {
+            this->window = window;
+
             this->world_scale = std::min(
                 this->window->ScreenWidth() / static_cast<float>(this->plane_size.x),
                 this->window->ScreenHeight() / static_cast<float>(this->plane_size.y)
@@ -283,10 +287,8 @@ namespace ntf::cluster
             return true;
         }
 
-        bool OnUserUpdate(float elapsedTime)
+        bool draw_self(float elapsed_time)
         {
-            this->window->Clear(olc::BLACK);
-
             if (this->window->GetKey(olc::CTRL).bHeld && this->window->GetKey(olc::SHIFT).bHeld && this->window->GetKey(olc::EQUALS).bPressed)
             {
                 this->root_observations_amount++;
