@@ -1,5 +1,6 @@
 #pragma once
 #include "cluster.h"
+#include "window.h"
 
 namespace ntf::cluster
 {
@@ -11,11 +12,12 @@ namespace ntf::cluster
         k_means()
         {
             this->name = "K means";
+            this->param_name = "K";
         }
 
         std::vector<cluster<T>> partition(const std::vector<vector2d<T>>& observations, partitioning_profile& profile = {}) override
         {
-            this->random_engine.seed(static_cast<uint32_t>(high_res_clock::now().time_since_epoch().count()));
+            window::seed_default_random_engine(this->random_engine);
 
             profile.reset();
             timer t(profile.elapsed_time);
@@ -103,11 +105,12 @@ namespace ntf::cluster
     };
 
     template <typename T = int32_t>
-    struct k_means_multi : public partitioner<T>
+    struct k_medoids : public partitioner<T>
     {
-        k_means_multi()
+        k_medoids()
         {
-            this->name = "K means (with max K)";
+            this->name = "K medoids";
+            this->param_name = "K";
         }
 
         std::vector<cluster<T>> partition(const std::vector<vector2d<T>>& observations, partitioning_profile& profile = {}) override

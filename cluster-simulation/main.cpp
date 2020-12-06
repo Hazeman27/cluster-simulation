@@ -6,7 +6,7 @@ int main()
 {
     std::vector<std::shared_ptr<ntf::cluster::partitioner<int>>> partitioners{
         std::make_shared<ntf::cluster::k_means<>>(),
-        std::make_shared<ntf::cluster::k_means_multi<>>(),
+        std::make_shared<ntf::cluster::k_medoids<>>(),
     };
 
     std::shared_ptr<ntf::screen> simulator(std::make_shared<ntf::cluster::simulator>(partitioners));

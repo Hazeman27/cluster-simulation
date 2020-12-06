@@ -69,6 +69,7 @@ namespace ntf::cluster
     struct partitioner
     {
         std::string name;
+        std::string param_name;
         constrained<uint8_t, 1, UINT8_MAX, 5> param;
 
         virtual std::vector<cluster<T>> partition(const std::vector<vector2d<T>>& observations, partitioning_profile& profile = {}) = 0;

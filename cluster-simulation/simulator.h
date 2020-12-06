@@ -199,7 +199,8 @@ namespace ntf::cluster
                     "Scale: " + std::to_string(this->world_scale),
                     "Root observations: " + std::to_string(this->root_observations_amount),
                     "Observations: " + std::to_string(this->observations_amount),
-                    this->current_partitioner()->name + ", K=" + std::to_string(this->current_partitioner()->param),
+                    this->current_partitioner()->name,
+                    this->current_partitioner()->param_name + ": " + std::to_string(this->current_partitioner()->param),
                 }
             );
 
@@ -213,20 +214,20 @@ namespace ntf::cluster
                 "Iterations: " + std::to_string(this->partitioning_profile.iterations)
             );
 
-            uint64_t _elapsed_time = this->partitioning_profile.elapsed_time.count();
+            uint64_t elapsed_time = this->partitioning_profile.elapsed_time.count();
 
-            std::string elapsed_time_str = std::to_string(_elapsed_time);
+            std::string elapsed_time_str = std::to_string(elapsed_time);
             std::string time_unit = "micrs";
 
-            if (_elapsed_time > 1000000)
+            if (elapsed_time > 1000000)
             {
-                elapsed_time_str = std::to_string(_elapsed_time / 1000000.0f);
+                elapsed_time_str = std::to_string(elapsed_time / 1000000.0f);
                 time_unit = "s";
             }
 
-            else if (_elapsed_time > 10000)
+            else if (elapsed_time > 10000)
             {
-                elapsed_time_str = std::to_string(_elapsed_time / 1000.0f);
+                elapsed_time_str = std::to_string(elapsed_time / 1000.0f);
                 time_unit = "ms";
             }
 
