@@ -8,20 +8,20 @@
 
 namespace ntf::cluster
 {
-    template <typename T>
+    template <typename T = int>
     struct cluster
     {
-        std::vector<size_t> observation_indices;
-        vector2d<T> mean;
+        std::vector<v2d_shared_ptr<T>> observations;
+        v2d<T> mean;
 
         color color{ 255, 255, 255 };
 
-        T variability(const std::vector<vector2d<T>>& observations) const
+        double variability() const
         {
-            T result = 0;
+            double result = 0;
 
-            for (auto& i : this->observation_indices)
-                result += this->mean.euclidean_distance_squared(observations[i]);
+            for (auto& observation : this->observations)
+                result += this->mean.euclidean_distance_squared(*observation);
 
             return result;
         }
@@ -72,17 +72,56 @@ namespace ntf::cluster
         std::string param_name;
         constrained<uint8_t, 1, UINT8_MAX, 5> param;
 
-        virtual std::vector<cluster<T>> partition(const std::vector<vector2d<T>>& observations, partitioning_profile& profile = {}) = 0;
+        virtual std::vector<cluster<T>> partition(std::vector<v2d<T>>& observations, partitioning_profile& profile = {}) = 0;
     };
 
     template <typename T = int32_t>
-    T dissimilarity(const std::vector<cluster<T>>& clusters, const std::vector<vector2d<T>>& observations)
+    double variability(const v2d<T>& mean, const std::vector<v2d<T>>& observations)
     {
-        T result = 0;
+        double result = 0;
 
-        for (auto& cluster : clusters)
-            result += cluster.variability(observations);
+        for (auto& observation : observations)
+            result += mean.euclidean_distance_squared(observation);
 
         return result;
+    }
+
+    template <typename T = int32_t>
+    double variability(const v2d<T>& mean, const std::vector<v2d_shared_ptr<T>>& observations)
+    {
+        double result = 0;
+
+        for (auto& observation : observations)
+            result += mean.euclidean_distance_squared(*observation);
+
+        return result;
+    }
+
+    template <typename T = int32_t>
+    double dissimilarity(const std::vector<cluster<T>>& clusters)
+    {
+        double result = 0;
+
+        for (auto& cluster : clusters)
+            result += cluster.variability();
+
+        return result;
+    }
+
+    template <typename T = int32_t>
+    void clear_clusters(std::vector<cluster<T>>& clusters)
+    {
+        for (auto& cluster : clusters)
+            cluster.observations.clear();
+    }
+
+    template <typename T = int32_t>
+    typename std::vector<cluster<T>>::const_iterator find_empty_cluster(const std::vector<cluster<T>>& clusters)
+    {
+        return std::find_if(
+            clusters.begin(),
+            clusters.end(),
+            [&](const cluster<T>& c) { return c.observations.empty(); }
+        );
     }
 }

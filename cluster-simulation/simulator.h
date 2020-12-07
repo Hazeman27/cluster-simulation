@@ -23,18 +23,18 @@ namespace ntf::cluster
 
         constrained<uint16_t, 1, UINT16_MAX> root_observations_amount = DEFAULT_ROOT_OBSERVATIONS_AMOUNT;
         constrained_uint16_t observations_amount = DEFAULT_OBSERVATIONS_AMOUNT;
-        vu16_2d offset = { DEFAULT_OFFSET, DEFAULT_OFFSET };
-        vu16_2d plane_size = { DEFAULT_PLANE_SIZE, DEFAULT_PLANE_SIZE };
+        v2d_u16 offset = { DEFAULT_OFFSET, DEFAULT_OFFSET };
+        v2d_u16 plane_size = { DEFAULT_PLANE_SIZE, DEFAULT_PLANE_SIZE };
 
-        std::vector<vi2d> observations = {};
+        std::vector<v2d_i32> observations = {};
         std::vector<cluster<int32_t>> clusters = {};
         std::vector<partitioner_shared_ptr> partitioners = {};
             
         partitioning_profile partitioning_profile = {};
         size_t current_partitioner_index = 0;
 
-        vi2d pan_start_pos;
-        vi2d world_offset = { 0, 0 };
+        v2d_i32 pan_start_pos;
+        v2d_i32 world_offset = { 0, 0 };
         float world_scale = 1.0f;
         
     public:
@@ -48,8 +48,8 @@ namespace ntf::cluster
 
         simulator(
             const std::vector<partitioner_shared_ptr>& partitioners,
-            const vu16_2d& plane_size,
-            const vu16_2d& offset,
+            const v2d_u16& plane_size,
+            const v2d_u16& offset,
             uint16_t root_observations_amount,
             uint16_t observations_amount
         ) :
@@ -64,8 +64,8 @@ namespace ntf::cluster
 
         simulator(
             std::vector<partitioner_shared_ptr>&& partitioners,
-            vu16_2d&& plane_size,
-            vu16_2d&& offset,
+            v2d_u16&& plane_size,
+            v2d_u16&& offset,
             uint16_t root_observations_amount,
             uint16_t observations_amount
         ) :
@@ -84,14 +84,14 @@ namespace ntf::cluster
             return VISUALLY_DISTINCT_COLORS[index % VISUALLY_DISTINCT_COLORS.size()];
         }
 
-        vi2d size_vi2d()
+        v2d_i32 size_v2d_i32()
         {
             return { static_cast<int32_t>(this->plane_size.x), static_cast<int32_t>(this->plane_size.y) };
         }
 
-        vi2d world_to_screen(const vi2d& position)
+        v2d_i32 world_to_screen(const v2d_i32& position)
         {
-            vi2d new_pos = position - this->world_offset;
+            v2d_i32 new_pos = position - this->world_offset;
 
             return {
                 static_cast<int32_t>(new_pos.x * this->world_scale),
@@ -99,9 +99,9 @@ namespace ntf::cluster
             };
         }
 
-        vi2d screen_to_world(const vi2d& position)
+        v2d_i32 screen_to_world(const v2d_i32& position)
         {
-            vi2d new_pos {
+            v2d_i32 new_pos {
                 static_cast<int32_t>(position.x / this->world_scale),
                 static_cast<int32_t>(position.y / this->world_scale),
             };
@@ -111,8 +111,7 @@ namespace ntf::cluster
 
         void generate_observations()
         {
-            this->window->seed_default_random_engine(this->random_engine);
-            vi2d plane_size = std::move(this->size_vi2d());
+            v2d_i32 plane_size = std::move(this->size_v2d_i32());
 
             this->clusters.clear();
             this->observations.clear();
@@ -124,8 +123,10 @@ namespace ntf::cluster
                 int_distribution x_distr(0, plane_size.x - 1);
                 int_distribution y_distr(0, plane_size.y - 1);
 
-                this->observations.push_back({ x_distr(this->random_engine), y_distr(this->random_engine) });
-                this->clusters[0].observation_indices.push_back(i);
+                v2d_i32 observation{ x_distr(this->random_engine), y_distr(this->random_engine) };
+
+                this->observations.push_back(observation);
+                this->clusters[0].observations.push_back(std::make_shared<v2d_i32>(observation));
             }
 
             for (uint16_t i = root_observations_amount; i < this->observations_amount; i++)
@@ -137,13 +138,11 @@ namespace ntf::cluster
                 int_distribution x_offset_distr(this->offset.x * -1, this->offset.x);
                 int_distribution y_offset_distr(this->offset.y * -1, this->offset.y);
 
-                int32_t x_offset = std::clamp(0, x_offset_distr(this->random_engine), plane_size.x - 1);
-                int32_t y_offset = std::clamp(0, y_offset_distr(this->random_engine), plane_size.y - 1);
+                v2d_i32 offset_pos{ x_offset_distr(this->random_engine), y_offset_distr(this->random_engine) };
+                v2d_i32 observation{ random_cell + offset_pos };
 
-                vi2d offset_pos{ x_offset_distr(this->random_engine), y_offset_distr(this->random_engine) };
-
-                this->observations.push_back(random_cell + offset_pos);
-                this->clusters[0].observation_indices.push_back(i);
+                this->observations.push_back(observation);
+                this->clusters[0].observations.push_back(std::make_shared<v2d_i32>(observation));
             }
         }
 
@@ -151,9 +150,9 @@ namespace ntf::cluster
         {
             for (auto& cluster : this->clusters)
             {
-                for (auto& index : cluster.observation_indices)
+                for (auto& observation : cluster.observations)
                 {
-                    auto position = std::move(this->world_to_screen(this->observations.at(index)));
+                    auto position = std::move(this->world_to_screen(*observation));
                     this->window->FillCircle(position, 1, cluster.color);
                 }
 
@@ -166,13 +165,13 @@ namespace ntf::cluster
 
         void draw_axis()
         {
-            vi2d plane_size(std::move(this->size_vi2d()));
+            v2d_i32 plane_size(std::move(this->size_v2d_i32()));
 
-            vi2d x_axis_start(std::move(this->world_to_screen({ 0, plane_size.y / 2 })));
-            vi2d x_axis_end(std::move(this->world_to_screen({ plane_size.x, plane_size.y / 2 })));
+            v2d_i32 x_axis_start(std::move(this->world_to_screen({ 0, plane_size.y / 2 })));
+            v2d_i32 x_axis_end(std::move(this->world_to_screen({ plane_size.x, plane_size.y / 2 })));
 
-            vi2d y_axis_start(std::move(this->world_to_screen({ plane_size.x / 2, 0 })));
-            vi2d y_axis_end(std::move(this->world_to_screen({ plane_size.x / 2, plane_size.y })));
+            v2d_i32 y_axis_start(std::move(this->world_to_screen({ plane_size.x / 2, 0 })));
+            v2d_i32 y_axis_end(std::move(this->world_to_screen({ plane_size.x / 2, plane_size.y })));
 
             this->window->DrawLine(
                 { 0, x_axis_start.y },
@@ -239,7 +238,7 @@ namespace ntf::cluster
 
         void zoom_and_pan()
         {
-            vi2d mouse_pos{ this->window->GetMouseX(), this->window->GetMouseY() };
+            v2d_i32 mouse_pos{ this->window->GetMouseX(), this->window->GetMouseY() };
 
             if (this->window->GetMouse(2).bPressed)
                 this->pan_start_pos = mouse_pos;
@@ -252,7 +251,7 @@ namespace ntf::cluster
                 this->pan_start_pos = mouse_pos;
             }
 
-            vi2d mouse_before_zoom = this->screen_to_world(mouse_pos);
+            v2d_i32 mouse_before_zoom = this->screen_to_world(mouse_pos);
 
             if (this->window->GetMouseWheel() > 0 || this->window->GetKey(olc::CTRL).bHeld && this->window->GetKey(olc::E).bHeld)
                 this->world_scale *= 1.1f;
@@ -260,7 +259,7 @@ namespace ntf::cluster
             if (this->window->GetMouseWheel() < 0 || this->window->GetKey(olc::CTRL).bHeld && this->window->GetKey(olc::Q).bHeld)
                 this->world_scale *= 0.9f;
 
-            vi2d mouse_after_zoom = this->screen_to_world(mouse_pos);
+            v2d_i32 mouse_after_zoom = this->screen_to_world(mouse_pos);
             this->world_offset += (mouse_before_zoom - mouse_after_zoom);
         }
 
@@ -273,6 +272,7 @@ namespace ntf::cluster
         bool on_create(std::shared_ptr<ntf::window> window) override
         {
             this->window = window;
+            this->window->seed_default_random_engine(this->random_engine);
 
             this->world_scale = std::min(
                 this->window->ScreenWidth() / static_cast<float>(this->plane_size.x),

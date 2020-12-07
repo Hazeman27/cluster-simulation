@@ -13,12 +13,127 @@ namespace ntf::cluster
         {
             this->name = "K means";
             this->param_name = "K";
+
+            window::seed_default_random_engine(this->random_engine);
         }
 
-        std::vector<cluster<T>> partition(const std::vector<vector2d<T>>& observations, partitioning_profile& profile = {}) override
+        static v2d<T> compute_centroid(const cluster<T>& cluster)
         {
-            window::seed_default_random_engine(this->random_engine);
+            v2d<T> coords_sum{};
 
+            for (auto& observation : cluster.observations)
+                coords_sum += *observation;
+
+            return coords_sum / std::max(static_cast<T>(cluster.observations.size()), 1);
+        };
+
+        static bool converged(const std::vector<cluster<T>>& clusters, const std::vector<v2d<T>>& previous_means)
+        {
+            for (size_t i = 0; i < clusters.size(); i++)
+            {
+                if (clusters[i].mean != previous_means[i])
+                    return false;
+            }
+
+            return true;
+        };
+
+        static std::vector<v2d<T>> find_optimal_means(size_t k, std::vector<v2d<T>>& observations)
+        {
+            std::vector<v2d<T>> means(k);
+
+            v2d<T> plane_start{};
+            v2d<T> plane_end{};
+
+            for (auto& observation : observations)
+            {
+                if (observation.x < plane_start.x) plane_start.x = observation.x;
+                if (observation.y < plane_start.y) plane_start.y = observation.y;
+                if (observation.x > plane_end.x)   plane_end.x   = observation.x;
+                if (observation.y > plane_end.y)   plane_end.y   = observation.y;
+            }
+
+            v2d<T> plane_centroid = (plane_start + plane_end) / 2;
+
+            std::sort(
+                observations.begin(),
+                observations.end(),
+                [](const v2d<T>& a, const v2d<T>& b) { return a.x < b.x; }
+            );
+
+            int32_t plane_sections_width = (plane_end.x - plane_start.x) / static_cast<int32_t>(k);
+
+            for (size_t i = 0; i < k; i++)
+            {
+                v2d<T> target_centroid{
+                    plane_sections_width * static_cast<int32_t>(i) + plane_sections_width / 2,
+                    plane_centroid.y
+                };
+
+                auto mean_iter = std::lower_bound(
+                    observations.begin(),
+                    observations.end(),
+                    target_centroid,
+                    [](const v2d<T>& obs, const v2d<T>& target) { return obs.x < target.x; }
+                );
+
+                v2d<T> mean{};
+
+                if (mean_iter == observations.end())
+                    mean = observations.back();
+                else
+                    mean = *mean_iter;
+
+                means[i] = mean;
+            }
+
+            return means;
+        }
+
+        static std::vector<cluster<T>> init_clusters(size_t k, const std::vector<v2d<T>>& means)
+        {
+            std::vector<cluster<T>> clusters(k);
+
+            for (size_t i = 0; i < k; i++)
+            {
+                auto& cluster = clusters[i];
+
+                cluster.mean = means[i];
+                cluster.color = VISUALLY_DISTINCT_COLORS[i];
+            }
+
+            return clusters;
+        }
+
+        static void assign_observations(std::vector<cluster<T>>& clusters, const std::vector<v2d<T>>& observations)
+        {
+            for (size_t i = 0; i < observations.size(); i++)
+            {
+                auto& observation = observations[i];
+
+                double closest_distance = DBL_MAX;
+                size_t closest_cluster_index = 0;
+
+                for (size_t j = 0; j < clusters.size(); j++)
+                {
+                    auto& cluster = clusters[j];
+                    double distance = observation.euclidean_distance_squared(cluster.mean);
+
+                    if (distance < closest_distance)
+                    {
+                        closest_distance = distance;
+                        closest_cluster_index = j;
+                    }
+                }
+
+                clusters[closest_cluster_index].observations.push_back(
+                    std::make_shared<v2d<T>>(observation)
+                );
+            }
+        }
+
+        std::vector<cluster<T>> partition(std::vector<v2d<T>>& observations, partitioning_profile& profile = {}) override
+        {
             profile.reset();
             timer t(profile.elapsed_time);
 
@@ -26,7 +141,7 @@ namespace ntf::cluster
             std::unordered_map<size_t, bool> visited_indices;
 
             std::vector<cluster<T>> clusters(this->param);
-            std::vector<vector2d<T>> previous_means(this->param);
+            std::vector<v2d<T>> previous_means(this->param);
 
             for (size_t i = 0; i < this->param;)
             {
@@ -35,67 +150,29 @@ namespace ntf::cluster
                 if (visited_indices.find(random_index) != visited_indices.end())
                     continue;
 
-                auto& cluster = clusters.at(i);
-
-                cluster.mean = observations[random_index];
-                cluster.color = VISUALLY_DISTINCT_COLORS[i];
-
+                clusters[i].mean = observations[random_index];
+                clusters[i].color = VISUALLY_DISTINCT_COLORS[i];
+                
                 visited_indices.insert({ random_index, true });
                 i++;
             }
 
-            auto compute_centroid = [&](size_t cluster_index)
+            while (!k_means::converged(clusters, previous_means))
             {
-                vector2d<T> coords_sum{};
-                auto& cluster = clusters.at(cluster_index);
+                clear_clusters(clusters);
 
-                for (auto& index : cluster.observation_indices)
-                    coords_sum += observations[index];
+                k_means::assign_observations(clusters, observations);
 
-                previous_means.at(cluster_index) = cluster.mean;
-                cluster.mean = coords_sum / std::max(static_cast<T>(cluster.observation_indices.size()), 1);
-            };
+                if (find_empty_cluster(clusters) != clusters.end())
+                    return partition(observations, profile);
 
-            auto has_converged = [&]()
-            {
                 for (size_t i = 0; i < clusters.size(); i++)
                 {
-                    if (clusters[i].mean != previous_means[i])
-                        return false;
+                    auto& cluster = clusters[i];
+
+                    previous_means[i] = cluster.mean;
+                    cluster.mean = k_means::compute_centroid(clusters[i]);
                 }
-
-                return true;
-            };
-
-            while (!has_converged())
-            {
-                for (auto& cluster : clusters)
-                    cluster.observation_indices.clear();
-
-                for (size_t i = 0; i < observations.size(); i++)
-                {
-                    auto& observation = observations[i];
-
-                    double closest_distance = DBL_MAX;
-                    size_t closest_cluster_index = 0;
-
-                    for (size_t j = 0; j < this->param; j++)
-                    {
-                        auto& cluster = clusters[j];
-                        double distance = observation.euclidean_distance(cluster.mean);
-
-                        if (distance < closest_distance)
-                        {
-                            closest_distance = distance;
-                            closest_cluster_index = j;
-                        }
-                    }
-
-                    clusters[closest_cluster_index].observation_indices.push_back(i);
-                }
-
-                for (size_t i = 0; i < clusters.size(); i++)
-                    compute_centroid(i);
 
                 profile.iterations++;
             }
@@ -107,43 +184,91 @@ namespace ntf::cluster
     template <typename T = int32_t>
     struct k_medoids : public partitioner<T>
     {
+        std::default_random_engine random_engine;
+
         k_medoids()
         {
             this->name = "K medoids";
             this->param_name = "K";
+
+            window::seed_default_random_engine(this->random_engine);
         }
 
-        std::vector<cluster<T>> partition(const std::vector<vector2d<T>>& observations, partitioning_profile& profile = {}) override
+        v2d<T> compute_medoid(const cluster<T>& cluster)
+        {
+            auto centroid = k_means<T>::compute_centroid(cluster);
+            
+            auto medoid_iter = std::lower_bound(
+                cluster.observations.begin(),
+                cluster.observations.end(),
+                centroid,
+                [](const v2d_shared_ptr<T> obs, const v2d<T>& centroid) { return obs->x < centroid.x; }
+            );
+
+            v2d<T> medoid{};
+
+            if (medoid_iter == cluster.observations.end())
+            {
+                std::uniform_int_distribution<size_t> indices_distribution(0, cluster.observations.size() - 1);
+                size_t index = indices_distribution(this->random_engine);
+                
+                medoid = *(cluster.observations.at(index));
+            }
+
+            else medoid = **medoid_iter;
+
+            return medoid;
+        };
+
+        std::vector<cluster<T>> partition(std::vector<v2d<T>>& observations, partitioning_profile& profile = {}) override
         {
             profile.reset();
             timer t(profile.elapsed_time);
 
-            partitioning_profile p{};
+            std::vector<v2d<T>> optimal_means = std::move(k_means<T>::find_optimal_means(this->param, observations));
+            std::vector<v2d<T>> previous_means(this->param);
 
-            std::vector<cluster<T>> clusters;
-            uint8_t best_k = 1;
+            std::vector<cluster<T>> clusters = std::move(k_means<T>::init_clusters(this->param, optimal_means));
 
-            T current_dissimilarity = 0;
-            T best_dissimilarity = UINT32_MAX;
+            double current_dissimilarity = DBL_MAX;
+            double previous_dissimilarity = DBL_MAX;
 
-            k_means k_means;
-
-            for (k_means.param = 1; k_means.param < this->param; k_means.param++)
+            while (true)
             {
-                clusters = std::move(k_means.partition(observations, p));
+                clear_clusters(clusters);
+                k_means<T>::assign_observations(clusters, observations);
 
-                current_dissimilarity = dissimilarity(clusters, observations);
-                profile.iterations += p.iterations;
-                    
-                if (current_dissimilarity < best_dissimilarity)
+                auto empty_cluster_iter = find_empty_cluster(clusters);
+
+                if (empty_cluster_iter != clusters.end())
                 {
-                    best_k = k_means.param;
-                    best_dissimilarity = current_dissimilarity;
+                    auto& empty_cluster = clusters[empty_cluster_iter - clusters.begin()];
+
+                    std::uniform_int_distribution<size_t> indices_distribution(0, observations.size() - 1);
+                    size_t index = indices_distribution(this->random_engine);
+
+                    empty_cluster.mean = observations.at(indices_distribution(this->random_engine));
+                    continue;
                 }
+
+                for (size_t i = 0; i < clusters.size(); i++)
+                {
+                    auto& cluster = clusters[i];
+
+                    previous_means[i] = cluster.mean;
+                    cluster.mean = compute_medoid(clusters[i]);
+                }
+
+                profile.iterations++;
+
+                previous_dissimilarity = current_dissimilarity;
+                current_dissimilarity = dissimilarity(clusters);
+
+                if (current_dissimilarity >= previous_dissimilarity)
+                    break;
             }
 
-            k_means.param = best_k;
-            return std::move(k_means.partition(observations, p));
+            return clusters;
         }
     };
 }
