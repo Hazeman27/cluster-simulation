@@ -13,6 +13,7 @@ namespace ntf::cluster
     constexpr uint16_t DEFAULT_ROOT_OBSERVATIONS_AMOUNT = 20;
     constexpr uint16_t DEFAULT_OBSERVATIONS_AMOUNT = 40000;
     constexpr uint16_t OBSERVATIONS_INC = 1000;
+    constexpr int32_t PANNING_SPEED = 1800;
 
     class simulator : public screen
     {
@@ -236,20 +237,33 @@ namespace ntf::cluster
             );
         }
 
-        void zoom_and_pan()
+        void zoom_and_pan(float elapsed_time)
         {
             v2d_i32 mouse_pos{ this->window->GetMouseX(), this->window->GetMouseY() };
+            int32_t panning_offset = static_cast<int32_t>(PANNING_SPEED * elapsed_time);
 
-            if (this->window->GetMouse(2).bPressed)
+            if (this->window->GetMouse(2).bPressed || this->window->GetMouse(0).bPressed)
                 this->pan_start_pos = mouse_pos;
 
-            if (this->window->GetMouse(2).bHeld)
+            if (this->window->GetMouse(2).bHeld || this->window->GetMouse(0).bHeld)
             {
                 this->world_offset.x -= static_cast<int32_t>((mouse_pos.x - this->pan_start_pos.x) / this->world_scale);
                 this->world_offset.y -= static_cast<int32_t>((mouse_pos.y - this->pan_start_pos.y) / this->world_scale);
 
                 this->pan_start_pos = mouse_pos;
             }
+
+            if (this->window->GetKey(olc::LEFT).bHeld)
+                this->world_offset.x -= panning_offset;
+
+            if (this->window->GetKey(olc::UP).bHeld)
+                this->world_offset.y -= panning_offset;
+
+            if (this->window->GetKey(olc::RIGHT).bHeld)
+                this->world_offset.x += panning_offset;
+
+            if (this->window->GetKey(olc::DOWN).bHeld)
+                this->world_offset.y += panning_offset;
 
             v2d_i32 mouse_before_zoom = this->screen_to_world(mouse_pos);
 
@@ -320,16 +334,16 @@ namespace ntf::cluster
             else if (this->window->GetKey(olc::CTRL).bHeld && this->window->GetKey(olc::J).bPressed)
                 this->current_partitioner()->param--;
 
-            else if (this->window->GetKey(olc::RIGHT).bPressed)
-                this->current_partitioner_index = (this->current_partitioner_index + 1) % this->partitioners.size();
-
-            else if (this->window->GetKey(olc::LEFT).bPressed)
+            else if (this->window->GetKey(olc::SHIFT).bHeld && this->window->GetKey(olc::TAB).bPressed)
             {
                 if (this->current_partitioner_index == 0)
                     this->current_partitioner_index = this->partitioners.size() - 1;
                 else
                     this->current_partitioner_index = (this->current_partitioner_index - 1) % this->partitioners.size();
             }
+
+            else if (this->window->GetKey(olc::TAB).bPressed)
+                this->current_partitioner_index = (this->current_partitioner_index + 1) % this->partitioners.size();
 
             else if (this->window->GetKey(olc::S).bPressed)
             {
@@ -339,7 +353,7 @@ namespace ntf::cluster
             else if (this->window->GetKey(olc::R).bPressed)
                 this->generate_observations();
 
-            this->zoom_and_pan();
+            this->zoom_and_pan(elapsed_time);
             this->draw_observations();
             this->draw_axis();
             this->draw_info();
