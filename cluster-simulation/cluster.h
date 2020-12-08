@@ -70,7 +70,7 @@ namespace ntf::cluster
     {
         std::string name;
         std::string param_name;
-        constrained<uint8_t, 1, UINT8_MAX, 5> param;
+        constrained<uint8_t, 1, UINT8_MAX, 15> param;
 
         virtual std::vector<cluster<T>> partition(std::vector<v2d<T>>& observations, partitioning_profile& profile = {}) = 0;
     };
