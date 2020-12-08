@@ -234,8 +234,6 @@ namespace ntf::cluster
             timer t(profile.elapsed_time);
 
             std::vector<v2d<T>> optimal_means = std::move(k_means<T>::find_optimal_means(observations));
-            std::vector<v2d<T>> previous_means(this->param);
-
             std::vector<cluster<T>> clusters = std::move(k_means<T>::init_clusters(optimal_means));
 
             double current_dissimilarity = DBL_MAX;
@@ -262,8 +260,6 @@ namespace ntf::cluster
                 for (size_t i = 0; i < clusters.size(); i++)
                 {
                     auto& cluster = clusters[i];
-
-                    previous_means[i] = cluster.mean;
                     cluster.mean = std::move(compute_medoid_from_centroid(clusters[i]));
                 }
 

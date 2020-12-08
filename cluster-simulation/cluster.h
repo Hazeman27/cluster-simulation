@@ -76,22 +76,11 @@ namespace ntf::cluster
     };
 
     template <typename T = int32_t>
-    double variability(const v2d<T>& mean, const std::vector<v2d<T>>& observations)
+    double variability(const v2d<T>& mean, const cluster<T>& cluster)
     {
         double result = 0;
 
-        for (auto& observation : observations)
-            result += mean.euclidean_distance_squared(observation);
-
-        return result;
-    }
-
-    template <typename T = int32_t>
-    double variability(const v2d<T>& mean, const std::vector<v2d_shared_ptr<T>>& observations)
-    {
-        double result = 0;
-
-        for (auto& observation : observations)
+        for (auto& observation : cluster.observations)
             result += mean.euclidean_distance_squared(*observation);
 
         return result;
